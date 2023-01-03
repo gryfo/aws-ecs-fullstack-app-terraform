@@ -55,6 +55,12 @@ variable "ecr_repositories" {
   default     = ["*"]
 }
 
+variable "codestar_connections" {
+  description = "The Code Star connections to which grant IAM access"
+  type        = list(string)
+  default     = ["*"]
+}
+
 variable "code_build_projects" {
   description = "The Code Build projects to which grant IAM access"
   type        = list(string)
@@ -77,4 +83,8 @@ variable "s3_bucket_assets" {
   description = "The name of the S3 bucket to which grant IAM access"
   type        = list(string)
   default     = ["*"]
+}
+
+variable "permissions_boundary" {
+  type = string
 }

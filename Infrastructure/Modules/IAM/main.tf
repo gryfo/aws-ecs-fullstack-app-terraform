@@ -24,6 +24,9 @@ resource "aws_iam_role" "ecs_task_excecution_role" {
   ]
 }
 EOF
+
+  permissions_boundary = var.permissions_boundary
+
   tags = {
     Name = var.name
   }
@@ -51,6 +54,9 @@ resource "aws_iam_role" "ecs_task_role" {
   ]
 }
 EOF
+
+  permissions_boundary = var.permissions_boundary
+
   tags = {
     Name = var.name_ecs_task_role
   }
@@ -82,6 +88,9 @@ resource "aws_iam_role" "devops_role" {
   ]
 }
 EOF
+
+  permissions_boundary = var.permissions_boundary
+
   tags = {
     Name = var.name
   }
@@ -109,6 +118,7 @@ resource "aws_iam_role" "codedeploy_role" {
 }
 EOF
 
+  permissions_boundary = var.permissions_boundary
 }
 
 # ------- IAM Policies -------
@@ -184,6 +194,12 @@ data "aws_iam_policy_document" "role_policy_devops_role" {
       "s3:List*"
     ]
     resources = ["*"]
+  }
+  statement {
+    sid       = "AllowCodeStarConnectionUse"
+    effect    = "Allow"
+    actions   = ["codestar-connections:UseConnection", ]
+    resources = var.codestar_connections
   }
   statement {
     sid    = "AllowCodebuildActions"

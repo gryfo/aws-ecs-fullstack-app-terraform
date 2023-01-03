@@ -6,6 +6,10 @@ variable "name" {
   type        = string
 }
 
+variable "codestar_connection" {
+  type = string
+}
+
 variable "pipe_role" {
   description = "The role assumed by CodePipeline"
   type        = string
@@ -16,11 +20,11 @@ variable "s3_bucket" {
   type        = string
 }
 
-variable "github_token" {
-  description = "Personal access token from Github"
-  type        = string
-  sensitive   = true
-}
+# variable "github_token" {
+#   description = "Personal access token from Github"
+#   type        = string
+#   sensitive   = true
+# }
 
 variable "repo_owner" {
   description = "The username of the Github repository owner"

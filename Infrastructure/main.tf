@@ -5,20 +5,6 @@
           Root file
 ============================*/
 
-# ------- Providers -------
-provider "aws" {
-  profile = var.aws_profile
-  region  = var.aws_region
-
-  # provider level tags - yet inconsistent when executing 
-  # default_tags {
-  #   tags = {
-  #     Created_by = "Terraform"
-  #     Project    = "AWS_demo_fullstack_devops"
-  #   }
-  # }
-}
-
 # ------- Random numbers intended to be used as unique identifiers for resources -------
 resource "random_id" "RANDOM_ID" {
   byte_length = "2"
@@ -128,19 +114,21 @@ module "alb_client" {
 
 # ------- ECS Role -------
 module "ecs_role" {
-  source             = "./Modules/IAM"
-  create_ecs_role    = true
-  name               = var.iam_role_name["ecs"]
-  name_ecs_task_role = var.iam_role_name["ecs_task_role"]
-  dynamodb_table     = [module.dynamodb_table.dynamodb_table_arn]
+  source               = "./Modules/IAM"
+  create_ecs_role      = true
+  name                 = var.iam_role_name["ecs"]
+  name_ecs_task_role   = var.iam_role_name["ecs_task_role"]
+  dynamodb_table       = [module.dynamodb_table.dynamodb_table_arn]
+  permissions_boundary = "arn:aws:iam::046831591010:policy/ScopePermissions"
 }
 
 # ------- Creating a IAM Policy for role -------
 module "ecs_role_policy" {
-  source        = "./Modules/IAM"
-  name          = "ecs-ecr-${var.environment_name}"
-  create_policy = true
-  attach_to     = module.ecs_role.name_role
+  source               = "./Modules/IAM"
+  name                 = "ecs-ecr-${var.environment_name}"
+  create_policy        = true
+  attach_to            = module.ecs_role.name_role
+  permissions_boundary = "arn:aws:iam::046831591010:policy/ScopePermissions"
 }
 
 # ------- Creating server ECR Repository to store Docker Images -------
@@ -268,15 +256,17 @@ module "s3_codepipeline" {
 
 # ------- Creating IAM roles used during the pipeline excecution -------
 module "devops_role" {
-  source             = "./Modules/IAM"
-  create_devops_role = true
-  name               = var.iam_role_name["devops"]
+  source               = "./Modules/IAM"
+  create_devops_role   = true
+  name                 = var.iam_role_name["devops"]
+  permissions_boundary = "arn:aws:iam::046831591010:policy/ScopePermissions"
 }
 
 module "codedeploy_role" {
   source                 = "./Modules/IAM"
   create_codedeploy_role = true
   name                   = var.iam_role_name["codedeploy"]
+  permissions_boundary   = "arn:aws:iam::046831591010:policy/ScopePermissions"
 }
 
 # ------- Creating an IAM Policy for role ------- 
@@ -286,9 +276,11 @@ module "policy_devops_role" {
   create_policy         = true
   attach_to             = module.devops_role.name_role
   create_devops_policy  = true
+  codestar_connections  = [aws_codestarconnections_connection.gh.arn]
   ecr_repositories      = [module.ecr_server.ecr_repository_arn, module.ecr_client.ecr_repository_arn]
   code_build_projects   = [module.codebuild_client.project_arn, module.codebuild_server.project_arn]
   code_deploy_resources = [module.codedeploy_server.application_arn, module.codedeploy_server.deployment_group_arn, module.codedeploy_client.application_arn, module.codedeploy_client.deployment_group_arn]
+  permissions_boundary  = "arn:aws:iam::046831591010:policy/ScopePermissions"
 }
 
 # ------- Creating a SNS topic -------
@@ -360,11 +352,12 @@ module "codedeploy_client" {
 
 # ------- Creating CodePipeline -------
 module "codepipeline" {
-  source                   = "./Modules/CodePipeline"
-  name                     = "pipeline-${var.environment_name}"
-  pipe_role                = module.devops_role.arn_role
-  s3_bucket                = module.s3_codepipeline.s3_bucket_id
-  github_token             = var.github_token
+  source              = "./Modules/CodePipeline"
+  name                = "pipeline-${var.environment_name}"
+  pipe_role           = module.devops_role.arn_role
+  s3_bucket           = module.s3_codepipeline.s3_bucket_id
+  codestar_connection = aws_codestarconnections_connection.gh.arn
+  # github_token             = var.github_token
   repo_owner               = var.repository_owner
   repo_name                = var.repository_name
   branch                   = var.repository_branch
@@ -388,4 +381,10 @@ module "s3_assets" {
 module "dynamodb_table" {
   source = "./Modules/Dynamodb"
   name   = "assets-table-${var.environment_name}"
+}
+
+# ------- Creating Codestar connection -------
+resource "aws_codestarconnections_connection" "gh" {
+  name          = "mkan-gh-connection"
+  provider_type = "GitHub"
 }
